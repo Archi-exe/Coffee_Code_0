@@ -5,14 +5,18 @@ AI-powered LMS prototype for turning educational material into structured learni
 ## Run locally
 
 ```powershell
-cd backend
+cd "C:\Users\persi\Coffee_Code_0\Coffee_Code_0\backend"
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn main:app --reload
+python -m uvicorn main:app --reload
 ```
 
-Then open `frontend/index.html` in a browser. Upload a `.txt`, `.md`, `.pdf`, or `.docx` file and generate a course outline plus interactive knowledge check.
+Open `http://127.0.0.1:8000/` in your browser. The FastAPI server serves the frontend, so do not open `frontend/index.html` directly and do not start a second frontend server.
+
+The app accepts `.txt`, `.md`, `.pdf`, and `.docx` files. It uses the local source-grounded fallback by default. To enable AI generation, create `backend/.env` from `backend/.env.example` and add either an `OPENAI_API_KEY` or `GEMINI_API_KEY`.
+
+Check the API at `http://127.0.0.1:8000/docs` and the health endpoint at `http://127.0.0.1:8000/health`.
 
 ## Product direction
 
@@ -20,6 +24,6 @@ The demo is intentionally built as a vertical slice: material ingestion → cour
 
 ## Next milestones
 
-1. Replace the fallback generator with an LLM provider plus structured JSON validation.
+1. Improve provider selection and structured JSON validation.
 2. Add persistent course records, spaced-repetition review, and learner progress.
 3. Add teacher controls for editing, approving, and sharing generated courses.
