@@ -11,7 +11,7 @@ python -m venv .venv
 .venv\Scripts\python.exe -m uvicorn main:app --reload
 ```
 
-This setup does not require PowerShell script activation. If activation is preferred, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first, then run `\.\.venv\Scripts\Activate.ps1`.
+This setup does not require PowerShell script activation. If activation is preferred, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first, then run `.` + `\\.venv\\Scripts\\Activate.ps1` in PowerShell.
 
 Open `http://127.0.0.1:8000/` in your browser. The FastAPI server serves the frontend, so do not open `frontend/index.html` directly and do not start a second frontend server.
 
