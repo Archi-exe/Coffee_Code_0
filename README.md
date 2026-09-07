@@ -7,10 +7,11 @@ AI-powered LMS prototype for turning educational material into structured learni
 ```powershell
 cd backend
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python -m uvicorn main:app --reload
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m uvicorn main:app --reload
 ```
+
+This setup does not require PowerShell script activation. If activation is preferred, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first, then run `\.\.venv\Scripts\Activate.ps1`.
 
 Open `http://127.0.0.1:8000/` in your browser. The FastAPI server serves the frontend, so do not open `frontend/index.html` directly and do not start a second frontend server.
 
