@@ -4,6 +4,7 @@ from io import BytesIO
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 app = FastAPI(title="LearnForge API", version="0.1.0")
@@ -15,6 +16,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+FRONTEND_PAGE = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
+
+
+@app.get("/", include_in_schema=False)
+def frontend():
+    """Serve the single-page demo from the same local server as the API."""
+    return FileResponse(FRONTEND_PAGE)
 
 
 class Lesson(BaseModel):
