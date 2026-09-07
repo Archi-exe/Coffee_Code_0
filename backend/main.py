@@ -42,6 +42,7 @@ class SourceCitation(StrictModel):
 class Lesson(StrictModel):
     title: str
     summary: str
+    content: str = Field(description="A short, source-grounded lesson that teaches the topic in 2-3 beginner-friendly paragraphs.")
     duration_minutes: int = Field(ge=3, le=30)
     objectives: List[str] = Field(min_length=2, max_length=3)
     citation: SourceCitation
@@ -82,9 +83,13 @@ def build_free_course(text: str, filename: str) -> Course:
     lessons = []
     for index, topic in enumerate(topics):
         source = sentences[min(index * 2, len(sentences) - 1)]
+        passage = " ".join(
+            sentences[(index * 3 + offset) % len(sentences)] for offset in range(3)
+        ).strip()
         lessons.append(Lesson(
             title=f"{index + 1}. {topic}",
             summary=source,
+            content=passage,
             duration_minutes=10 + index * 3,
             objectives=[f"Explain the main idea behind {topic}", f"Find evidence about {topic} in the material"],
             citation=SourceCitation(excerpt=source, location="Uploaded material"),
@@ -105,7 +110,7 @@ def build_free_course(text: str, filename: str) -> Course:
 
 
 def make_prompt(text: str, filename: str) -> str:
-    return f"""You are LearnForge, a careful instructional designer. Create a beginner-friendly course using ONLY the uploaded learning material below. Do not invent facts. Return exactly the requested JSON structure. Create exactly 3 sequential lessons and exactly 4 multiple-choice quiz questions. Each lesson needs 2-3 measurable objectives. Each question must test a stated lesson objective, have exactly four plausible choices, and use a zero-based answer index. For every lesson and question, include a very short exact quote from the source as its citation excerpt. Use a useful page/section location if it appears in the material; otherwise use 'Uploaded material'.\n\nFilename: {filename}\n\nUPLOADED MATERIAL START\n{text}\nUPLOADED MATERIAL END"""
+    return f"""You are LearnForge, a careful instructional designer. Create a beginner-friendly course using ONLY the uploaded learning material below. Do not invent facts. Return exactly the requested JSON structure. Create exactly 3 sequential lessons and exactly 4 multiple-choice quiz questions. Each lesson needs a `content` field containing 2-3 short beginner-friendly paragraphs that teach the lesson from the uploaded material, 2-3 measurable objectives, and a source citation. Each question must test a stated lesson objective, have exactly four plausible choices, and use a zero-based answer index. For every lesson and question, include a very short exact quote from the source as its citation excerpt. Use a useful page/section location if it appears in the material; otherwise use 'Uploaded material'.\n\nFilename: {filename}\n\nUPLOADED MATERIAL START\n{text}\nUPLOADED MATERIAL END"""
 
 
 def generate_ai_course(text: str, filename: str) -> Course:
