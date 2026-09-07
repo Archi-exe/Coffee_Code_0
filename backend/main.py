@@ -31,7 +31,9 @@ def frontend():
 
 
 class StrictModel(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    # Gemini structured output does not accept JSON Schema's additionalProperties flag.
+    # Unknown model fields are ignored while the required learning fields are still validated.
+    model_config = ConfigDict(extra="ignore")
 
 
 class SourceCitation(StrictModel):
@@ -165,10 +167,11 @@ def generate_gemini_course(text: str, filename: str) -> Course:
 
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.6-flash",
         contents=make_prompt(text, filename),
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
+            response_schema=Course,
             temperature=0.3,
             max_output_tokens=5000,
         ),
