@@ -2,7 +2,7 @@
 
 LearnForge is an AI-powered learning management system and course builder. It turns textbooks, PDFs, DOCX files, Markdown, and notes into structured lessons, learning objectives, source citations, and knowledge checks.
 
-The project is designed for the PS 6 hackathon and ships as a local-first FastAPI application with an optional OpenAI or Gemini generation layer.
+The project is designed for the Resonance 1.0 hackathon and ships as a local-first FastAPI application with an optional OpenAI or Gemini generation layer.
 
 ## Features
 
@@ -15,7 +15,7 @@ The project is designed for the PS 6 hackathon and ships as a local-first FastAP
 
 ## Prerequisites
 
-- Windows, macOS, or Linux
+- Windows
 - Python 3.11 or newer
 - Internet access during installation
 - An OpenAI or Gemini API key only if provider-powered generation is needed
