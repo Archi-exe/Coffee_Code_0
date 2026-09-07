@@ -71,21 +71,32 @@ def short_text(value: str, length: int = 180) -> str:
     return re.sub(r"\s+", " ", value).strip()[:length].rstrip(" ,;:-")
 
 
+def passage_for_topic(topic: str, sentences: List[str], fallback_start: int) -> str:
+    """Return a readable source passage centred on the selected lesson topic."""
+    topic_pattern = re.compile(rf"\b{re.escape(topic)}\w*\b", re.IGNORECASE)
+    match_index = next((index for index, sentence in enumerate(sentences) if topic_pattern.search(sentence)), None)
+    start = max(0, match_index - 1) if match_index is not None else fallback_start % len(sentences)
+    passage_sentences = [
+        sentences[(start + offset) % len(sentences)]
+        for offset in range(min(6, len(sentences)))
+    ]
+    paragraphs = [" ".join(passage_sentences[index : index + 2]) for index in range(0, len(passage_sentences), 2)]
+    return "\n\n".join(paragraph for paragraph in paragraphs if paragraph)
+
+
 def build_free_course(text: str, filename: str) -> Course:
     """A no-cost, source-grounded local fallback for the hackathon demo."""
     sentences = [short_text(item) for item in re.split(r"(?<=[.!?])\s+|\n+", text) if len(short_text(item)) > 45]
     if len(sentences) < 4:
         sentences = [short_text(line) for line in text.splitlines() if len(short_text(line)) > 20]
-    sentences = (sentences + ["Review the uploaded material carefully."] * 4)[:12]
+    sentences = sentences or ["Review the uploaded material carefully."]
     words = re.findall(r"[A-Za-z]{5,}", text.lower())
     topics = [word.title() for word, _ in Counter(word for word in words if word not in STOP_WORDS).most_common(3)] or ["Key Ideas", "Core Concepts", "Practice"]
     title = Path(filename).stem.replace("_", " ").replace("-", " ").title() or "Learning Path"
     lessons = []
     for index, topic in enumerate(topics):
-        source = sentences[min(index * 2, len(sentences) - 1)]
-        passage = " ".join(
-            sentences[(index * 3 + offset) % len(sentences)] for offset in range(3)
-        ).strip()
+        passage = passage_for_topic(topic, sentences, index * 6)
+        source = short_text(passage.split("\n\n", maxsplit=1)[0])
         lessons.append(Lesson(
             title=f"{index + 1}. {topic}",
             summary=source,
