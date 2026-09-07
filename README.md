@@ -5,7 +5,7 @@ AI-powered LMS prototype for turning educational material into structured learni
 ## Run locally
 
 ```powershell
-cd "C:\Users\persi\Coffee_Code_0\Coffee_Code_0\backend"
+cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
