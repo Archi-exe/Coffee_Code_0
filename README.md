@@ -2,6 +2,8 @@
 
 AI-powered LMS prototype for turning educational material into structured learning paths.
 
+The latest release is `v1.0.2`. See [RELEASE_NOTES.md](RELEASE_NOTES.md) for the change summary.
+
 ## Run locally
 
 ```powershell
