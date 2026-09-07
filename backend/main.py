@@ -43,7 +43,7 @@ class Lesson(StrictModel):
     title: str
     summary: str
     content: str = Field(description="A short, source-grounded lesson that teaches the topic in 2-3 beginner-friendly paragraphs.")
-    duration_minutes: int = Field(ge=3, le=30)
+    duration_minutes: int = Field(ge=1, le=30)
     objectives: List[str] = Field(min_length=2, max_length=3)
     citation: SourceCitation
 
@@ -71,17 +71,24 @@ def short_text(value: str, length: int = 180) -> str:
     return re.sub(r"\s+", " ", value).strip()[:length].rstrip(" ,;:-")
 
 
-def passage_for_topic(topic: str, sentences: List[str], fallback_start: int) -> str:
-    """Return a readable source passage centred on the selected lesson topic."""
+def passage_for_topic(topic: str, sentences: List[str], fallback_start: int) -> List[str]:
+    """Select the clearest source sentences for one topic without inventing facts."""
     topic_pattern = re.compile(rf"\b{re.escape(topic)}\w*\b", re.IGNORECASE)
-    match_index = next((index for index, sentence in enumerate(sentences) if topic_pattern.search(sentence)), None)
-    start = max(0, match_index - 1) if match_index is not None else fallback_start % len(sentences)
-    passage_sentences = [
-        sentences[(start + offset) % len(sentences)]
-        for offset in range(min(6, len(sentences)))
-    ]
-    paragraphs = [" ".join(passage_sentences[index : index + 2]) for index in range(0, len(passage_sentences), 2)]
-    return "\n\n".join(paragraph for paragraph in paragraphs if paragraph)
+    matches = [sentence for sentence in sentences if topic_pattern.search(sentence)]
+    selected = matches[:3]
+    if len(selected) < 3:
+        start = fallback_start % len(sentences)
+        for offset in range(len(sentences)):
+            sentence = sentences[(start + offset) % len(sentences)]
+            if sentence not in selected:
+                selected.append(sentence)
+            if len(selected) == 3:
+                break
+    return selected
+
+
+def reading_minutes(text: str) -> int:
+    return max(1, round(len(re.findall(r"\b\w+\b", text)) / 160))
 
 
 def build_free_course(text: str, filename: str) -> Course:
@@ -95,13 +102,17 @@ def build_free_course(text: str, filename: str) -> Course:
     title = Path(filename).stem.replace("_", " ").replace("-", " ").title() or "Learning Path"
     lessons = []
     for index, topic in enumerate(topics):
-        passage = passage_for_topic(topic, sentences, index * 6)
-        source = short_text(passage.split("\n\n", maxsplit=1)[0])
+        key_sentences = passage_for_topic(topic, sentences, index * 3)
+        source = short_text(key_sentences[0])
+        content = "\n\n".join(
+            [f"Key idea: {key_sentences[0]}"]
+            + [f"Important detail: {sentence}" for sentence in key_sentences[1:]]
+        )
         lessons.append(Lesson(
             title=f"{index + 1}. {topic}",
-            summary=source,
-            content=passage,
-            duration_minutes=10 + index * 3,
+            summary=f"A focused summary of the main ideas about {topic}.",
+            content=content,
+            duration_minutes=reading_minutes(content),
             objectives=[f"Explain the main idea behind {topic}", f"Find evidence about {topic} in the material"],
             citation=SourceCitation(excerpt=source, location="Uploaded material"),
         ))
@@ -121,13 +132,52 @@ def build_free_course(text: str, filename: str) -> Course:
 
 
 def make_prompt(text: str, filename: str) -> str:
-    return f"""You are LearnForge, a careful instructional designer. Create a beginner-friendly course using ONLY the uploaded learning material below. Do not invent facts. Return exactly the requested JSON structure. Create exactly 3 sequential lessons and exactly 4 multiple-choice quiz questions. Each lesson needs a `content` field containing 2-3 short beginner-friendly paragraphs that teach the lesson from the uploaded material, 2-3 measurable objectives, and a source citation. Each question must test a stated lesson objective, have exactly four plausible choices, and use a zero-based answer index. For every lesson and question, include a very short exact quote from the source as its citation excerpt. Use a useful page/section location if it appears in the material; otherwise use 'Uploaded material'.\n\nFilename: {filename}\n\nUPLOADED MATERIAL START\n{text}\nUPLOADED MATERIAL END"""
+    return f"""You are LearnForge, an excellent school teacher who turns difficult study material into simple, accurate lessons.
+
+Use ONLY the uploaded material. Do not invent facts. Return only valid JSON matching the requested course structure.
+
+Create exactly 3 lessons in a logical learning order and exactly 4 multiple-choice quiz questions. Every lesson must have:
+- a specific, human-friendly title;
+- a one-sentence summary;
+- `content`: 2 to 4 short, polished paragraphs in very simple English. Explain ideas clearly, connect facts, and avoid copying raw textbook sentences or fragments;
+- 2 or 3 measurable objectives;
+- a short exact source quote and location.
+
+Every quiz question must test a lesson objective, have exactly 4 plausible options, a zero-based answer index, a short explanation, and a source citation. Do not mention that you are an AI.
+
+Filename: {filename}
+
+UPLOADED MATERIAL START
+{text}
+UPLOADED MATERIAL END"""
 
 
-def generate_ai_course(text: str, filename: str) -> Course:
+def set_reading_times(course: Course) -> Course:
+    for lesson in course.lessons:
+        lesson.duration_minutes = reading_minutes(lesson.content)
+    return course
+
+
+def generate_gemini_course(text: str, filename: str) -> Course:
+    """Create a polished course with Gemini when the user has configured its API key."""
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=make_prompt(text, filename),
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            temperature=0.3,
+            max_output_tokens=5000,
+        ),
+    )
+    return set_reading_times(Course.model_validate_json(response.text))
+
+
+def generate_openai_course(text: str, filename: str) -> Course:
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=503, detail="AI is not configured yet. Add OPENAI_API_KEY to backend/.env and restart the server.")
     try:
         response = OpenAI(api_key=api_key).responses.create(
             model="gpt-4.1-mini",
@@ -138,11 +188,23 @@ def generate_ai_course(text: str, filename: str) -> Course:
             max_output_tokens=2400,
             store=False,
         )
-        return Course.model_validate(json.loads(response.output_text))
+        return set_reading_times(Course.model_validate(json.loads(response.output_text)))
     except Exception as error:
-        if getattr(error, "status_code", None) == 429:
-            return build_free_course(text, filename)
-        raise HTTPException(status_code=502, detail=f"AI course generation failed: {error}") from error
+        raise RuntimeError("OpenAI course generation failed") from error
+
+
+def generate_ai_course(text: str, filename: str) -> Course:
+    if os.getenv("GEMINI_API_KEY"):
+        try:
+            return generate_gemini_course(text, filename)
+        except Exception as error:
+            print(f"Gemini course generation failed; using fallback: {error}")
+    if os.getenv("OPENAI_API_KEY"):
+        try:
+            return generate_openai_course(text, filename)
+        except Exception as error:
+            print(f"OpenAI course generation failed; using fallback: {error}")
+    return build_free_course(text, filename)
 
 
 async def extract_text(file: UploadFile, raw: bytes) -> str:
