@@ -1,15 +1,18 @@
-# LearnForge v1.0.2
+# Release notes
 
-## What changed
+## v1.0.2
 
-- Refreshed the homepage copy so the product value is clear on first load.
-- Added a page description for better sharing and browser previews.
-- Simplified the upload experience and button labels.
-- Kept PDF, DOCX, Markdown, and TXT support unchanged.
-- Kept source citations, lesson views, quiz scoring, and the local fallback generator unchanged.
-- Updated the Windows setup instructions to work when PowerShell blocks activation scripts.
+Current tagged release.
 
-## Run
+### Highlights
+
+- Refreshed the homepage copy and first-run experience.
+- Added browser description metadata for cleaner sharing and previews.
+- Clarified the upload flow for PDF, DOCX, Markdown, and TXT files.
+- Kept lesson views, source citations, quiz scoring, and local fallback generation intact.
+- Added PowerShell-safe Windows setup instructions.
+
+### Installation
 
 ```powershell
 cd backend
@@ -19,3 +22,15 @@ python -m venv .venv
 ```
 
 Open `http://127.0.0.1:8000/`.
+
+## v1.0.1
+
+- Removed a personal local filesystem path from the README.
+- Added Windows setup guidance for PowerShell execution-policy restrictions.
+
+## v1.0.0
+
+- Initial public release tag for the LearnForge hackathon prototype.
+- PDF, DOCX, Markdown, and TXT ingestion.
+- Structured lesson and quiz generation.
+- FastAPI backend with a browser-based frontend.
