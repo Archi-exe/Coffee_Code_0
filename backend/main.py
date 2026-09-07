@@ -9,6 +9,7 @@ from typing import List
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from openai import OpenAI
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,6 +21,13 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False,
 MAX_FILE_BYTES = 8 * 1024 * 1024
 MAX_SOURCE_CHARS = 24_000
 SUPPORTED_SUFFIXES = {".txt", ".md", ".text", ".pdf", ".docx"}
+FRONTEND_PAGE = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
+
+
+@app.get("/", include_in_schema=False)
+def frontend():
+    """Serve the demo and API from one local server."""
+    return FileResponse(FRONTEND_PAGE)
 
 
 class StrictModel(BaseModel):
