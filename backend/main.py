@@ -62,8 +62,8 @@ class QuizQuestion(StrictModel):
 class Course(StrictModel):
     title: str
     description: str
-    lessons: List[Lesson] = Field(min_length=3, max_length=3)
-    quiz: List[QuizQuestion] = Field(min_length=4, max_length=4)
+    lessons: List[Lesson] = Field(min_length=1, max_length=20)
+    quiz: List[QuizQuestion] = Field(min_length=1, max_length=40)
 
 
 STOP_WORDS = {"about", "after", "also", "because", "between", "from", "have", "into", "more", "other", "their", "there", "these", "this", "that", "they", "with", "which", "will", "would", "your", "than", "then", "when", "where", "while", "were", "been", "being", "what", "does", "each"}
@@ -93,14 +93,38 @@ def reading_minutes(text: str) -> int:
     return max(1, round(len(re.findall(r"\b\w+\b", text)) / 160))
 
 
+def compute_target_counts(text: str) -> tuple[int, int]:
+    """Provide a conservative fallback only when an AI provider is unavailable."""
+    word_count = len(re.findall(r"\b\w+\b", text))
+    if word_count < 500:
+        target_lessons = 2
+        target_questions = 3
+    elif word_count < 1500:
+        target_lessons = 3
+        target_questions = 5
+    elif word_count < 3500:
+        target_lessons = 4
+        target_questions = 6
+    elif word_count < 7000:
+        target_lessons = 5
+        target_questions = 8
+    else:
+        target_lessons = min(8, max(5, word_count // 1800))
+        target_questions = min(14, max(8, target_lessons + 3))
+    return target_lessons, target_questions
+
+
 def build_free_course(text: str, filename: str) -> Course:
     """A no-cost, source-grounded local fallback for the hackathon demo."""
+    target_lessons, target_questions = compute_target_counts(text)
     sentences = [short_text(item) for item in re.split(r"(?<=[.!?])\s+|\n+", text) if len(short_text(item)) > 45]
     if len(sentences) < 4:
         sentences = [short_text(line) for line in text.splitlines() if len(short_text(line)) > 20]
     sentences = sentences or ["Review the uploaded material carefully."]
     words = re.findall(r"[A-Za-z]{5,}", text.lower())
-    topics = [word.title() for word, _ in Counter(word for word in words if word not in STOP_WORDS).most_common(3)] or ["Key Ideas", "Core Concepts", "Practice"]
+    topics = [word.title() for word, _ in Counter(word for word in words if word not in STOP_WORDS).most_common(target_lessons)]
+    while len(topics) < target_lessons:
+        topics.append(f"Topic {len(topics) + 1}")
     title = Path(filename).stem.replace("_", " ").replace("-", " ").title() or "Learning Path"
     lessons = []
     for index, topic in enumerate(topics):
@@ -119,7 +143,7 @@ def build_free_course(text: str, filename: str) -> Course:
             citation=SourceCitation(excerpt=source, location="Uploaded material"),
         ))
     questions = []
-    for index in range(4):
+    for index in range(target_questions):
         source = sentences[min(index + 1, len(sentences) - 1)]
         objective = lessons[index % len(lessons)].objectives[0]
         questions.append(QuizQuestion(
@@ -138,7 +162,13 @@ def make_prompt(text: str, filename: str) -> str:
 
 Use ONLY the uploaded material. Do not invent facts. Return only valid JSON matching the requested course structure.
 
-Create exactly 3 lessons in a logical learning order and exactly 4 multiple-choice quiz questions. Every lesson must have:
+First, silently identify the document's distinct, meaningful subtopics. Then create ONE lesson for each major subtopic. Combine overlapping ideas into one lesson and never create filler lessons just because the document is long. The number of lessons must be chosen from the actual topics, NOT from page count, word count, or a fixed target. A short document might need 2 lessons; a broad document might need more. Do not always return the same number.
+
+Create quiz questions in proportion to the lessons: use 1 question for a simple lesson and 2 questions only when a lesson has several important ideas. Do not always return the same number of questions. Every question must test a real topic from the uploaded document; never add generic filler questions.
+
+Keep the course focused: return between 2 and 12 lessons and between 3 and 24 questions, but use the smallest number that still covers all major topics.
+
+Every lesson must have:
 - a specific, human-friendly title;
 - a one-sentence summary;
 - `content`: 2 to 4 short, polished paragraphs in very simple English. Explain ideas clearly, connect facts, and avoid copying raw textbook sentences or fragments;
