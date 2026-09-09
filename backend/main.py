@@ -202,7 +202,7 @@ def build_free_course(text: str, filename: str) -> Course:
 
 
 def make_prompt(text: str, filename: str) -> str:
-    return f"""You are LearnForge, an excellent school teacher who turns difficult study material into simple, accurate lessons.
+    return f"""You are SpellboundStudies, an excellent school teacher who turns difficult study material into simple, accurate lessons.
 
 Use ONLY the uploaded material. Do not invent facts. Return only valid JSON matching the requested course structure.
 
