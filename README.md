@@ -107,7 +107,10 @@ The current tagged release is [`v1.0.2`](https://github.com/Archi-exe/Coffee_Cod
 1. Improve provider selection and structured JSON validation.
 2. Add persistent course records, spaced-repetition review, and learner progress.
 3. Add teacher controls for editing, approving, and sharing courses.
-
+4. Implement an Event Handler.
+5. Add API keys options.
+6. Implement User database and login/signup methods
+   
 ## License
 
 No license has been declared yet. Add a `LICENSE` file before distributing the project outside the hackathon.
