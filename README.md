@@ -1,6 +1,6 @@
-# LearnForge
+# Spellbound Studies
 
-LearnForge is an AI-powered learning management system and course builder. It turns textbooks, PDFs, DOCX files, Markdown, and notes into structured lessons, learning objectives, source citations, and knowledge checks.
+Spellbound-Studies is an AI-powered learning management system and course builder. It turns textbooks, PDFs, DOCX files, Markdown, and notes into structured lessons, learning objectives, source citations, and knowledge checks.
 
 The project is designed for the Resonance 1.0 hackathon and ships as a local-first FastAPI application with an optional OpenAI or Gemini generation layer.
 
@@ -53,7 +53,7 @@ The app works without API keys. To enable provider-powered generation, copy `bac
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /` | Serve the LearnForge web app |
+| `GET /` | Serve the Spellbound Studies web app |
 | `GET /health` | Check server status and AI configuration |
 | `POST /api/courses/generate` | Upload material and generate a course |
 | `/docs` | OpenAPI documentation |
