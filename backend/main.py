@@ -21,6 +21,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False,
 MAX_FILE_BYTES = 8 * 1024 * 1024
 MAX_SOURCE_CHARS = 24_000
 SUPPORTED_SUFFIXES = {".txt", ".md", ".text", ".pdf", ".docx"}
+#implement here an exception handler for corrupted files :)
 FRONTEND_PAGE = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
 
 
